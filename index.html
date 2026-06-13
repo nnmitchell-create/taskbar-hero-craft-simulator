@@ -7331,6 +7331,39 @@ let heroEquip = {}; // { heroKey: { partName: itemObj } }
 let heroSockets = {}; // { heroKey: { partName: [materialObj, materialObj, ...] } }
 let heroActiveSkills = {}; // { heroKey: [skillNodeObj, skillNodeObj] }
 let applyRuneMax = true;
+
+function saveBuildData() {
+  try {
+    const data = {
+      activeHeroKey: activeHeroKey,
+      currentHeroLevel: currentHeroLevel,
+      heroEquip: heroEquip,
+      heroSockets: heroSockets,
+      heroSkillPoints: heroSkillPoints,
+      heroActiveSkills: heroActiveSkills
+    };
+    localStorage.setItem('tbh_simulator_build_data', JSON.stringify(data));
+  } catch (e) {
+    console.error("Failed to save build data to localStorage:", e);
+  }
+}
+
+function loadBuildData() {
+  try {
+    const saved = localStorage.getItem('tbh_simulator_build_data');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.heroEquip) heroEquip = data.heroEquip;
+      if (data.heroSockets) heroSockets = data.heroSockets;
+      if (data.heroSkillPoints) heroSkillPoints = data.heroSkillPoints;
+      if (data.heroActiveSkills) heroActiveSkills = data.heroActiveSkills;
+      if (data.currentHeroLevel) currentHeroLevel = data.currentHeroLevel;
+      if (data.activeHeroKey) activeHeroKey = data.activeHeroKey;
+    }
+  } catch (e) {
+    console.error("Failed to load build data from localStorage:", e);
+  }
+}
 let activeBuildSubTab = 'skill'; // 'skill' または 'build'
 let currentEquipSelectSlot = null;
 let currentSocketSelectSlot = null;
@@ -7716,6 +7749,7 @@ window.addEventListener('DOMContentLoaded', () => {
       initItemsDb();
       initEffects();
       initChests();
+      loadBuildData();
       initHeroes();
       initFarm();
       initCraft();
@@ -11271,8 +11305,13 @@ function initHeroes() {
     container.appendChild(item);
   });
   
-  // デフォルトで最初のヒーローを選択
-  selectHero(globalHeroes[0], 0);
+  // 保存されたヒーローを復元、なければ最初のヒーローを選択
+  let activeIdx = 0;
+  if (activeHeroKey) {
+    const foundIdx = globalHeroes.findIndex(h => h.key === activeHeroKey);
+    if (foundIdx !== -1) activeIdx = foundIdx;
+  }
+  selectHero(globalHeroes[activeIdx], activeIdx);
 }
 
 function selectHero(hero, idx) {
@@ -11612,6 +11651,7 @@ function updateSimulator() {
       totalPriceEl.style.color = 'var(--accent)';
     }
   }
+  saveBuildData();
 }
 
 function getMarketCurrencySymbol() {
