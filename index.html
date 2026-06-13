@@ -7334,13 +7334,52 @@ let applyRuneMax = true;
 
 function saveBuildData() {
   try {
+    // 装備のキーのみ保存
+    const equipKeys = {};
+    for (const heroKey in heroEquip) {
+      equipKeys[heroKey] = {};
+      for (const part in heroEquip[heroKey]) {
+        const item = heroEquip[heroKey][part];
+        if (item) equipKeys[heroKey][part] = item.key;
+      }
+    }
+
+    // ソケットルーンのキーのみ保存
+    const socketKeys = {};
+    for (const heroKey in heroSockets) {
+      socketKeys[heroKey] = {};
+      for (const part in heroSockets[heroKey]) {
+        const list = heroSockets[heroKey][part];
+        if (list) {
+          socketKeys[heroKey][part] = list.map(socket => {
+            if (!socket) return null;
+            return {
+              key: socket.key,
+              selectedGroupIndex: socket.groups && socket.selectedGroup 
+                ? socket.groups.findIndex(g => g.stat === socket.selectedGroup.stat && g.disp === socket.selectedGroup.disp)
+                : -1
+            };
+          });
+        }
+      }
+    }
+
+    // アクティブスキルノードのキーのみ保存
+    const activeSkillKeys = {};
+    for (const heroKey in heroActiveSkills) {
+      const skills = heroActiveSkills[heroKey];
+      if (skills) {
+        activeSkillKeys[heroKey] = skills.map(skill => skill ? skill.key : null);
+      }
+    }
+
     const data = {
       activeHeroKey: activeHeroKey,
       currentHeroLevel: currentHeroLevel,
-      heroEquip: heroEquip,
-      heroSockets: heroSockets,
+      heroEquipKeys: equipKeys,
+      heroSocketKeys: socketKeys,
       heroSkillPoints: heroSkillPoints,
-      heroActiveSkills: heroActiveSkills
+      heroActiveSkillKeys: activeSkillKeys
     };
     localStorage.setItem('tbh_simulator_build_data', JSON.stringify(data));
   } catch (e) {
@@ -7351,14 +7390,87 @@ function saveBuildData() {
 function loadBuildData() {
   try {
     const saved = localStorage.getItem('tbh_simulator_build_data');
-    if (saved) {
-      const data = JSON.parse(saved);
-      if (data.heroEquip) heroEquip = data.heroEquip;
-      if (data.heroSockets) heroSockets = data.heroSockets;
-      if (data.heroSkillPoints) heroSkillPoints = data.heroSkillPoints;
-      if (data.heroActiveSkills) heroActiveSkills = data.heroActiveSkills;
-      if (data.currentHeroLevel) currentHeroLevel = data.currentHeroLevel;
-      if (data.activeHeroKey) activeHeroKey = data.activeHeroKey;
+    if (!saved) return;
+    const data = JSON.parse(saved);
+    
+    if (data.currentHeroLevel) currentHeroLevel = data.currentHeroLevel;
+    if (data.activeHeroKey) activeHeroKey = data.activeHeroKey;
+    if (data.heroSkillPoints) heroSkillPoints = data.heroSkillPoints;
+
+    // 装備の復元
+    if (data.heroEquipKeys && typeof globalItems !== 'undefined' && globalItems.length > 0) {
+      heroEquip = {};
+      for (const heroKey in data.heroEquipKeys) {
+        heroEquip[heroKey] = {};
+        for (const part in data.heroEquipKeys[heroKey]) {
+          const itemKey = data.heroEquipKeys[heroKey][part];
+          if (itemKey) {
+            const foundItem = globalItems.find(it => it.key === itemKey);
+            if (foundItem) heroEquip[heroKey][part] = foundItem;
+          }
+        }
+      }
+    }
+
+    // ソケットの復元
+    if (data.heroSocketKeys && typeof globalEffects !== 'undefined' && globalEffects.length > 0) {
+      heroSockets = {};
+      for (const heroKey in data.heroSocketKeys) {
+        heroSockets[heroKey] = {};
+        for (const part in data.heroSocketKeys[heroKey]) {
+          const list = data.heroSocketKeys[heroKey][part];
+          if (list) {
+            heroSockets[heroKey][part] = list.map(socketInfo => {
+              if (!socketInfo) return null;
+              const foundEffect = globalEffects.find(eff => eff.key === socketInfo.key);
+              if (!foundEffect) return null;
+              
+              let selectedG = null;
+              if (foundEffect.groups) {
+                if (socketInfo.selectedGroupIndex !== undefined && socketInfo.selectedGroupIndex >= 0) {
+                  selectedG = foundEffect.groups[socketInfo.selectedGroupIndex];
+                }
+                if (!selectedG) selectedG = foundEffect.groups[0];
+              }
+              
+              return {
+                key: foundEffect.key,
+                name: foundEffect.name,
+                icon: foundEffect.icon,
+                grade: foundEffect.grade,
+                category: foundEffect.category,
+                groups: foundEffect.groups,
+                selectedGroup: selectedG
+              };
+            });
+          }
+        }
+      }
+    }
+
+    // アクティブスキルの復元
+    if (data.heroActiveSkillKeys && typeof globalHeroes !== 'undefined' && globalHeroes.length > 0) {
+      heroActiveSkills = {};
+      for (const heroKey in data.heroActiveSkillKeys) {
+        const keysList = data.heroActiveSkillKeys[heroKey];
+        if (keysList) {
+          const hero = globalHeroes.find(h => h.key === heroKey);
+          if (hero && hero.tree) {
+            const findSkillNode = (k) => {
+              if (!k) return null;
+              for (const tier of hero.tree) {
+                for (const node of tier.nodes) {
+                  if (node.key === k) return node;
+                }
+              }
+              return null;
+            };
+            heroActiveSkills[heroKey] = keysList.map(k => findSkillNode(k));
+          } else {
+            heroActiveSkills[heroKey] = [null, null];
+          }
+        }
+      }
     }
   } catch (e) {
     console.error("Failed to load build data from localStorage:", e);
