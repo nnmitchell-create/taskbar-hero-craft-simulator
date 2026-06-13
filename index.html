@@ -7382,6 +7382,7 @@ function saveBuildData() {
       heroActiveSkillKeys: activeSkillKeys
     };
     localStorage.setItem('tbh_simulator_build_data', JSON.stringify(data));
+    console.log("Build data saved successfully:", data);
   } catch (e) {
     console.error("Failed to save build data to localStorage:", e);
   }
@@ -7390,8 +7391,12 @@ function saveBuildData() {
 function loadBuildData() {
   try {
     const saved = localStorage.getItem('tbh_simulator_build_data');
-    if (!saved) return;
+    if (!saved) {
+      console.log("No saved build data found in localStorage.");
+      return;
+    }
     const data = JSON.parse(saved);
+    console.log("Loading saved build data:", data);
     
     if (data.currentHeroLevel) currentHeroLevel = data.currentHeroLevel;
     if (data.activeHeroKey) activeHeroKey = data.activeHeroKey;
@@ -7472,6 +7477,7 @@ function loadBuildData() {
         }
       }
     }
+    console.log("Build data loaded successfully. heroEquip:", heroEquip);
   } catch (e) {
     console.error("Failed to load build data from localStorage:", e);
   }
