@@ -1,0 +1,43 @@
+name: Daily Market Data Sync
+
+on:
+  schedule:
+    # 毎日 UTC 15:00 (日本時間 24:00) に自動同期を実行
+    - cron: '0 15 * * *'
+  workflow_dispatch: # 手動実行ボタンをGitHub上に表示
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          # 必要に応じて追加の依存関係があればここに記述 (現在は標準ライブラリのみ使用)
+          echo "No external dependencies needed."
+
+      - name: Run daily market sync script
+        env:
+          STEAM_COOKIE: ${{ secrets.STEAM_COOKIE }}
+        run: node scripts/daily_sync.js
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/market_db.js
+          # 差分がある場合のみコミットしてプッシュ
+          if ! git diff --cached --exit-code; then
+            git commit -m "chore: auto update market price data [skip ci]"
+            git push
+          else
+            echo "No changes in market price data."
+          fi

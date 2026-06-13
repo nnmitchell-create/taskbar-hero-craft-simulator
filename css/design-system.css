@@ -1,0 +1,23 @@
+/* css/design-system.css */
+
+/* 取引履歴タブボタンのアクティブスタイル */
+.tab-buttons button.active {
+  background: var(--accent) !important;
+  color: #101424 !important;
+  font-weight: bold;
+}
+
+/* お気に入りボタンのアニメーション */
+#modalItemFavoriteBtn:hover {
+  transform: scale(1.2);
+}
+
+/* その他のモーダルデザイン微調整 */
+.modal .card {
+  border-color: var(--border-light) !important;
+}
+
+.mono {
+  font-family: 'Rajdhani', monospace;
+  font-weight: 600;
+}
