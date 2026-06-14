@@ -1174,7 +1174,6 @@
     }
     .tree-row.locked {
       opacity: 0.4;
-      pointer-events: none;
       background: rgba(10, 12, 22, 0.4);
     }
     
@@ -7910,20 +7909,11 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function checkDisclaimer() {
-  const isAccepted = localStorage.getItem('tbh_disclaimer_accepted');
-  if (isAccepted !== 'true') {
-    const modal = document.getElementById('disclaimerModal');
-    if (modal) modal.style.display = 'flex';
-  }
+  // 免責事項ポップアップ無効化
 }
 
 function closeDisclaimerModal() {
-  const modal = document.getElementById('disclaimerModal');
-  const checkbox = document.getElementById('disclaimerHideCheck');
-  if (modal) modal.style.display = 'none';
-  if (checkbox && checkbox.checked) {
-    localStorage.setItem('tbh_disclaimer_accepted', 'true');
-  }
+  // 免責事項ポップアップ無効化
 }
 
 /* ──────────────────────────────────────────────
@@ -10608,6 +10598,22 @@ function getItemDropSources(itemKey) {
   return sources.sort((a, b) => b.probability - a.probability);
 }
 
+function buildHashName(item) {
+  let name = item.name;
+  if (item.type === 'GEAR') {
+    const gradeStr = item.grade.charAt(0) + item.grade.slice(1).toLowerCase();
+    const keyStr = String(item.key);
+    let suffix = '';
+    if (keyStr.endsWith('1')) {
+      suffix = 'A';
+    } else if (keyStr.endsWith('2')) {
+      suffix = 'B';
+    }
+    name = suffix ? `${item.name} (${gradeStr}) ${suffix}` : `${item.name} (${gradeStr})`;
+  }
+  return name;
+}
+
 function showItemDetail(keyOrName) {
   let item;
   if (typeof keyOrName === 'number') {
@@ -10685,7 +10691,7 @@ function showItemDetail(keyOrName) {
   }
   
   if (steamMarketBtn) {
-    const steamSearchName = mData ? (mData.hash_name || mData.name) : item.name;
+    const steamSearchName = buildHashName(item);
     steamMarketBtn.href = `https://steamcommunity.com/market/listings/3678970/${encodeURIComponent(steamSearchName)}`;
   }
   
@@ -11945,10 +11951,17 @@ function renderSkillDetail(hero, usedPoints, maxPoints) {
     if (curLvl > 0) {
       const activeVal = activeNode.levelValues[curLvl - 1];
       const valStr = activeNode.pct ? `${activeVal}%` : `${activeVal}`;
-      descText = activeNode.descTemplate ? activeNode.descTemplate.replace('{0}', valStr) : activeNode.desc;
+      if (activeNode.descTemplate) {
+        const translatedTemplate = translateHeroText(activeNode.descTemplate);
+        descText = translatedTemplate.replace('{0}', valStr);
+      } else {
+        descText = translateHeroText(activeNode.desc);
+      }
     } else {
-      descText = activeNode.desc;
+      descText = translateHeroText(activeNode.desc);
     }
+  } else {
+    descText = translateHeroText(descText);
   }
   
   let lvlGridHtml = '';
@@ -12047,7 +12060,7 @@ function renderSkillDetail(hero, usedPoints, maxPoints) {
         </div>
       </div>
       
-      <div class="detail-desc">${translateHeroText(descText)}</div>
+      <div class="detail-desc">${descText}</div>
       
       <div class="detail-badges">${badgesHtml}</div>
       <div class="detail-tags">${tagsHtml}</div>
@@ -14572,59 +14585,5 @@ function updatePenaltyTable(heroLevel) {
       <div style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; padding-right:4px;" id="activeSkillSelectListContent"></div>
       <button class="action-btn refund-btn" onclick="unequipActiveSkillCurrent()" style="margin-top:10px; width:100%;">スキルをはずす</button>
     </div>
-  </div>
-
-  <!-- ■ DISCLAIMER MODAL -->
-  <div id="disclaimerModal" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(2, 4, 8, 0.9); align-items:center; justify-content:center; backdrop-filter:blur(8px);">
-    <div class="card" style="position:relative; max-width:550px; width:92%; padding:30px 24px; border:1px solid rgba(0, 255, 210, 0.4); background:radial-gradient(circle at 50% 50%, var(--bg-primary) 0%, rgba(10, 16, 30, 0.98) 100%); background-image:linear-gradient(rgba(0, 255, 210, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 210, 0.02) 1px, transparent 1px); background-size:20px 20px; border-radius:16px; display:flex; flex-direction:column; gap:20px; box-shadow:0 0 40px rgba(0, 255, 210, 0.2), inset 0 0 20px rgba(0, 255, 210, 0.05);">
-      
-      <!-- HUD 四隅ブラケット -->
-      <div style="position:absolute; top:-1px; left:-1px; width:16px; height:16px; border-top:3px solid var(--accent); border-left:3px solid var(--accent); border-top-left-radius:16px;"></div>
-      <div style="position:absolute; top:-1px; right:-1px; width:16px; height:16px; border-top:3px solid var(--accent); border-right:3px solid var(--accent); border-top-right-radius:16px;"></div>
-      <div style="position:absolute; bottom:-1px; left:-1px; width:16px; height:16px; border-bottom:3px solid var(--accent); border-left:3px solid var(--accent); border-bottom-left-radius:16px;"></div>
-      <div style="position:absolute; bottom:-1px; right:-1px; width:16px; height:16px; border-bottom:3px solid var(--accent); border-right:3px solid var(--accent); border-bottom-right-radius:16px;"></div>
-
-      <div style="display:flex; align-items:center; gap:14px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:16px;">
-        <div style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; background:rgba(0, 255, 210, 0.1); border:1px solid rgba(0, 255, 210, 0.4); box-shadow:0 0 15px rgba(0, 255, 210, 0.2); font-size:22px; color:var(--accent);">🛡️</div>
-        <div style="display:flex; flex-direction:column; gap:2px;">
-          <div style="font-size:18px; font-weight:800; color:#fff; letter-spacing:0.8px; text-shadow:0 0 8px rgba(0, 255, 210, 0.5);" data-i18n="disc_modal_title">免責事項・注意事項</div>
-          <div style="font-size:10px; color:var(--text-sec); font-family:'Rajdhani', sans-serif; letter-spacing:1px; text-transform:uppercase;" data-i18n="disc_modal_subtitle">Disclaimer & Terms of Use</div>
-          <div style="display:flex; gap:3px; margin-top:4px;"><span style="width:16px; height:2px; background:var(--accent); box-shadow:0 0 5px var(--accent);"></span><span style="width:4px; height:2px; background:var(--accent); opacity:0.6;"></span><span style="width:4px; height:2px; background:var(--accent); opacity:0.3;"></span></div>
-        </div>
-      </div>
-      
-      <div style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px; line-height:1.6; font-size:12px; color:var(--text-sec); max-height:55vh; padding-right:6px;" id="disclaimerModalBody">
-        
-        <div style="background:rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.04); border-left:3px solid var(--accent); padding:12px 14px; border-radius:6px; transition:all 0.25s ease;" onmouseenter="this.style.borderColor='rgba(0,255,210,0.6)'; this.style.background='rgba(0,255,210,0.02)'; this.style.boxShadow='0 0 8px rgba(0,255,210,0.05)';" onmouseleave="this.style.borderColor='var(--accent)'; this.style.background='rgba(255,255,255,0.015)'; this.style.boxShadow='none';">
-          <strong style="color:#fff; font-size:12.5px; display:block; margin-bottom:4px; letter-spacing:0.3px;" data-i18n="disc_item1_title">1. 情報の正確性について</strong>
-          <span data-i18n="disc_item1_desc">当サイトで取り扱っているドロップ確率、レシピ、期待値などの各種情報は100%正確であることを保証するものではありません。ゲームのアップデート等により数値が変更される場合があります。</span>
-        </div>
-        
-        <div style="background:rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.04); border-left:3px solid var(--accent); padding:12px 14px; border-radius:6px; transition:all 0.25s ease;" onmouseenter="this.style.borderColor='rgba(0,255,210,0.6)'; this.style.background='rgba(0,255,210,0.02)'; this.style.boxShadow='0 0 8px rgba(0,255,210,0.05)';" onmouseleave="this.style.borderColor='var(--accent)'; this.style.background='rgba(255,255,255,0.015)'; this.style.boxShadow='none';">
-          <strong style="color:#fff; font-size:12.5px; display:block; margin-bottom:4px; letter-spacing:0.3px;" data-i18n="disc_item2_title">2. 価格データの遅延について</strong>
-          <span data-i18n="disc_item2_desc">掲載されているSteamマーケットの取引価格情報は、リアルタイムの同期を行っておりません。価格データは1日に1回程度のバッチ更新であるため、実際の市場価格とはズレ（遅延）が生じる場合があります。必ず実際のSteamマーケットをご確認ください。</span>
-        </div>
-        
-        <div style="background:rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.04); border-left:3px solid var(--accent); padding:12px 14px; border-radius:6px; transition:all 0.25s ease;" onmouseenter="this.style.borderColor='rgba(0,255,210,0.6)'; this.style.background='rgba(0,255,210,0.02)'; this.style.boxShadow='0 0 8px rgba(0,255,210,0.05)';" onmouseleave="this.style.borderColor='var(--accent)'; this.style.background='rgba(255,255,255,0.015)'; this.style.boxShadow='none';">
-          <strong style="color:#fff; font-size:12.5px; display:block; margin-bottom:4px; letter-spacing:0.3px;" data-i18n="disc_item3_title">3. 取引判断の自己責任</strong>
-          <span data-i18n="disc_item3_desc">当サイトはシミュレーション結果を提供するものであり、ゲーム内アイテムの購入、売却、クラフト実行を推奨・助長するものではありません。最終的なクラフト実行や取引判断は、全てご自身の自己責任にてお願いいたします。</span>
-        </div>
-      </div>
-      
-      <div style="display:flex; flex-direction:column; gap:14px; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px; margin-top:4px;">
-        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; align-self:flex-start;">
-          <div style="position:relative; display:flex; align-items:center; justify-content:center;">
-            <input type="checkbox" id="disclaimerHideCheck" style="width:18px; height:18px; accent-color:var(--accent); cursor:pointer; filter:drop-shadow(0 0 4px var(--accent));">
-          </div>
-          <span style="font-size:12px; color:var(--text-pri); font-weight:700; letter-spacing:0.3px;" data-i18n="disc_hide_checkbox">次回から表示しない / Do not show again</span>
-        </label>
-        
-        <button onclick="closeDisclaimerModal()" class="action-btn" style="width:100%; padding:14px; font-size:14px; font-weight:900; border:none; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #00ffd2 0%, #00a8ff 100%); color:#070b13; font-family:'Rajdhani', sans-serif; letter-spacing:2px; text-transform:uppercase; box-shadow:0 0 20px rgba(0, 255, 210, 0.4); transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);" onmouseenter="this.style.transform='translateY(-2px) scale(1.015)'; this.style.boxShadow='0 0 30px rgba(0, 255, 210, 0.7)';" onmouseleave="this.style.transform='none'; this.style.boxShadow='0 0 20px rgba(0, 255, 210, 0.4)';" data-i18n="disc_agree_btn">
-          同意して閉じる / Accept & Close
-        </button>
-      </div>
-      
-    </div>
-  </div>
-</body>
+  </div></body>
 </html>

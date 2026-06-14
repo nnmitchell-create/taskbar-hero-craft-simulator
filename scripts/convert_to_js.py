@@ -1,7 +1,7 @@
 import json
 import os
 
-data_dir = 'd:/ガチャ/data'
+data_dir = os.path.join(os.path.dirname(__file__), '../data')
 
 with open(os.path.join(data_dir, 'meta.json'), 'r', encoding='utf-8') as f:
     meta = json.load(f)
