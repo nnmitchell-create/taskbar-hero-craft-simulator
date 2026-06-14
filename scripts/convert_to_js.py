@@ -21,7 +21,7 @@ with open(os.path.join(data_dir, 'heroes.json'), 'r', encoding='utf-8') as f:
 with open(os.path.join(data_dir, 'runes.json'), 'r', encoding='utf-8') as f:
     runes = json.load(f)
 
-with open(os.path.join(data_dir, 'stages.json'), 'r', encoding='utf-8') as f:
+with open(os.path.join(data_dir, 'stages_extracted.json'), 'r', encoding='utf-8') as f:
     stages = json.load(f)
 
 # JavaScriptのコードを作成する
