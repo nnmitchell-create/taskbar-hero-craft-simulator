@@ -8419,7 +8419,7 @@ function renderTable() {
         const iconName = foundItem ? foundItem.icon : null;
         const iconHtml = iconName ? `<img src="https://taskbarherowiki.com/icons/${iconName}.png" onerror="this.style.display='none'" style="width:20px; height:20px; object-fit:contain; image-rendering:pixelated; border-radius:4px; background:var(--bg-secondary); border:1px solid var(--border);" />` : '';
 
-        const detailParam = foundItem ? foundItem.key : `'${item.name.replace(/'/g, "\\'")}'`;
+        const detailParam = foundItem ? foundItem.key : 'null';
 
         let displayName = item.name;
         if (foundItem) {
@@ -8615,7 +8615,7 @@ function _doSim() {
   if (bdGrid) {
     const sorted = Object.values(counts).sort((a,b) => b.rev - a.rev);
     bdGrid.innerHTML = sorted.map(d => {
-      const foundItem = (typeof globalItems !== 'undefined') ? globalItems.find(it => it.name === d.name) : null;
+      const foundItem = (typeof globalItems !== 'undefined') ? globalItems.find(it => it.name === d.name && it.grade === d.rk.toUpperCase()) : null;
       const iconName = foundItem ? foundItem.icon : null;
       const iconHtml = iconName ? `<img src="https://taskbarherowiki.com/icons/${iconName}.png" onerror="this.style.display='none'" style="width:18px; height:18px; object-fit:contain; image-rendering:pixelated; border-radius:3px; background:var(--bg-secondary); border:1px solid var(--border);" />` : '';
       return `
@@ -8623,7 +8623,7 @@ function _doSim() {
           <div class="bd-left" style="display:flex; align-items:center; gap:6px; min-width:0; flex:1;">
             <span class="rb rb-${d.rk}" style="font-size:9px; padding:1px 6px;">${d.rName}</span>
             ${iconHtml}
-            <span style="color:${d.rColor}; cursor:pointer; text-decoration:underline; text-underline-offset:2px; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" onclick="showItemDetail('${d.name.replace(/'/g, "\\'")}')" title="${isEn ? 'Show Details' : '詳細を表示'}">${d.name}</span>
+            <span style="color:${d.rColor}; cursor:pointer; text-decoration:underline; text-underline-offset:2px; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" onclick="showItemDetail(${foundItem ? foundItem.key : 'null'})" title="${isEn ? 'Show Details' : '詳細を表示'}">${d.name}</span>
           </div>
           <span class="bd-count" style="font-size:11px; color:var(--text-sec); margin: 0 8px; flex-shrink:0;">${d.cnt}${isEn ? (d.cnt === 1 ? ' pc' : ' pcs') : '個'}</span>
           <span class="bd-val mono" style="color:${d.rev>0?'var(--accent)':'var(--text-sec)'}; font-size:11px; flex-shrink:0;">
@@ -9440,9 +9440,9 @@ function formatStatName(stat) {
       'SlayerLowHpAttackSpeed': 'スレイヤー: 低HP時に攻撃速度増加'
     }
   };
-  const currentLang = localStorage.getItem('lang') || 'ja';
-  if (translations[currentLang] && translations[currentLang][stat]) {
-    return translations[currentLang][stat];
+  const curLang = (typeof currentLang !== 'undefined') ? currentLang : 'ja';
+  if (translations[curLang] && translations[curLang][stat]) {
+    return translations[curLang][stat];
   }
   let formatted = stat.replace(/([A-Z])/g, ' $1').trim();
   formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
@@ -10566,34 +10566,43 @@ render();
 
 function getItemDropSources(itemKey) {
   const sources = [];
+  
   globalChests.forEach(chest => {
-    const pool = chest.pools && chest.pools[0];
-    if (!pool || !pool.entries) return;
+    if (!chest.pools) return;
     
-    let totalProb = 0;
-    let itemFraction = 1;
-    let hasItem = false;
-    
-    pool.entries.forEach(ent => {
-      if (ent.items && ent.items.includes(itemKey)) {
-        hasItem = true;
-        totalProb += ent.probability / ent.items.length;
-        itemFraction = ent.items.length;
+    chest.pools.forEach(pool => {
+      if (!pool || !pool.entries) return;
+      
+      let totalProb = 0;
+      let itemFraction = 1;
+      let hasItem = false;
+      
+      pool.entries.forEach(ent => {
+        if (ent.items && ent.items.includes(itemKey)) {
+          hasItem = true;
+          totalProb += ent.probability / ent.items.length;
+          itemFraction = ent.items.length;
+        }
+      });
+      
+      if (hasItem) {
+        const src = chest.sources && chest.sources[0];
+        let chestName = src ? src.name : 'Unknown Box';
+        const chestIcon = src && src.icon ? src.icon : 'Item_910011';
+        
+        if (pool.label && pool.label !== 'Default' && pool.label !== 'Normal') {
+          const displayLabel = pool.label === 'With Hunter & Slayer' ? 'スレイヤー＆ハンター有効時' : pool.label;
+          chestName = `${chestName} (${displayLabel})`;
+        }
+        
+        sources.push({
+          chestName,
+          chestIcon,
+          probability: totalProb,
+          fraction: itemFraction
+        });
       }
     });
-    
-    if (hasItem) {
-      const src = chest.sources && chest.sources[0];
-      const chestName = src ? src.name : 'Unknown Box';
-      const chestIcon = src && src.icon ? src.icon : 'Item_910011';
-      
-      sources.push({
-        chestName,
-        chestIcon,
-        probability: totalProb,
-        fraction: itemFraction
-      });
-    }
   });
   return sources.sort((a, b) => b.probability - a.probability);
 }
@@ -10622,8 +10631,6 @@ function showItemDetail(keyOrName) {
     const parsedKey = parseInt(keyOrName);
     if (!isNaN(parsedKey) && String(parsedKey) === keyOrName) {
       item = globalItems.find(it => it.key === parsedKey);
-    } else {
-      item = globalItems.find(it => it.name === keyOrName);
     }
   }
   if (!item) return;
@@ -10691,8 +10698,18 @@ function showItemDetail(keyOrName) {
   }
   
   if (steamMarketBtn) {
-    const steamSearchName = buildHashName(item);
-    steamMarketBtn.href = `https://steamcommunity.com/market/listings/3678970/${encodeURIComponent(steamSearchName)}`;
+    if (mData) {
+      const steamSearchName = buildHashName(item);
+      steamMarketBtn.href = `https://steamcommunity.com/market/listings/3678970/${encodeURIComponent(steamSearchName)}`;
+      steamMarketBtn.style.pointerEvents = 'auto';
+      steamMarketBtn.style.opacity = '1';
+      steamMarketBtn.innerHTML = (typeof currentLang !== 'undefined' && currentLang === 'ja') ? 'STEAM MARKET で開く ➔' : 'Open in Steam Market ➔';
+    } else {
+      steamMarketBtn.removeAttribute('href');
+      steamMarketBtn.style.pointerEvents = 'none';
+      steamMarketBtn.style.opacity = '0.4';
+      steamMarketBtn.innerHTML = (typeof currentLang !== 'undefined' && currentLang === 'ja') ? 'STEAM MARKET 未出品' : 'Not Listed on Steam Market';
+    }
   }
   
   let statsHtml = '';
@@ -10760,7 +10777,8 @@ function showItemDetail(keyOrName) {
 
   // マーケット詳細セクションの表示制御
   const marketDetailSec = document.getElementById('modalMarketDetailSection');
-  if (item.tradable) {
+  const hasMarketData = mData && (mData.sell_price !== undefined || mData.last_sold_price !== undefined);
+  if (item.tradable && hasMarketData) {
     if (marketDetailSec) marketDetailSec.style.display = 'grid';
     initMarketHistoryData(item);
     updateMarketHistoryChart('month');
@@ -10899,59 +10917,8 @@ function initMarketHistoryData(item) {
     return;
   }
 
-  const basePrice = (mData && mData.sell_price !== undefined) ? mData.sell_price : (item.level ? item.level * 150 : 500);
-
-  const rand = createSeededRandom(key);
-  const history = [];
-
-  // ゲーム発売日: 2026年5月27日 (日本時間)
-  const releaseDate = new Date('2026-05-27');
-  const today = new Date();
-  
-  // 発売日から本日に至るまでの日数を算出
-  const diffTime = today - releaseDate;
-  const diffDays = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-  
-  let price = basePrice * (0.95 + rand() * 0.1);
-  let currentDate = new Date(releaseDate);
-
-  // 実際の取引実績 (取引ボリューム) を模倣
-  const hasVolume = mData && mData.volume !== undefined && mData.volume > 0;
-  const totalVolume = hasVolume ? mData.volume : 0;
-  
-  // 発売日当日のデータを挿入
-  history.push({
-    date: currentDate.toISOString().split('T')[0],
-    price: Math.round(price),
-    volume: (hasVolume || rand() > 0.95) ? 1 : 0
-  });
-
-  for (let i = 1; i <= diffDays; i++) {
-    currentDate.setDate(currentDate.getDate() + 1);
-    if (currentDate > today) break;
-
-    const change = (rand() - 0.5) * 0.03;
-    const meanReversion = (basePrice - price) * 0.03;
-    price = price + price * change + meanReversion;
-    if (price < 1) price = 1;
-    
-    let volume = 0;
-    if (hasVolume) {
-      volume = Math.floor(rand() * (totalVolume * 0.1) + 1);
-    } else {
-      if (rand() > 0.97) {
-        volume = 1;
-      }
-    }
-
-    history.push({
-      date: currentDate.toISOString().split('T')[0],
-      price: Math.round(price),
-      volume: volume
-    });
-  }
-  
-  itemHistoryCache[key] = history;
+  // 架空データの自動生成を廃止し、空配列をセット
+  itemHistoryCache[key] = [];
 }
 
 function aggregateHistoryByDay(rawHistory) {
@@ -11136,26 +11103,12 @@ function renderOrderBook(item) {
   }
 
   if (sellOrders.length === 0 && buyOrders.length === 0) {
-    const basePrice = (mData && mData.sell_price !== undefined) ? mData.sell_price : (item.level ? item.level * 150 : 500);
-    const rand = createSeededRandom(item.key + 50);
-
-    let currentSellPrice = basePrice;
-    for (let i = 0; i < 5; i++) {
-      const count = Math.floor((5 - i) * (2 + rand() * 5));
-      if (count > 0) {
-        sellOrders.push({ price: currentSellPrice, count });
-      }
-      currentSellPrice *= (1.02 + rand() * 0.05);
-    }
-
-    let currentBuyPrice = basePrice * (0.95 + rand() * 0.03);
-    for (let i = 0; i < 5; i++) {
-      const count = Math.floor((i + 1) * (1 + rand() * 4) + 1);
-      if (count > 0) {
-        buyOrders.push({ price: currentBuyPrice, count });
-      }
-      currentBuyPrice *= (0.93 + rand() * 0.04);
-    }
+    const isJa = typeof currentLang !== 'undefined' && currentLang === 'ja';
+    const emptyMsg = isJa ? '注文データなし' : 'No Order Data';
+    const emptyRow = `<tr><td colspan="2" style="text-align:center; color:var(--text-faint); font-style:italic; padding:12px;">${emptyMsg}</td></tr>`;
+    sellBody.innerHTML = emptyRow;
+    buyBody.innerHTML = emptyRow;
+    return;
   }
 
   sellOrders.forEach(order => {
@@ -11403,9 +11356,21 @@ const heroTranslations = {
 
 function translateHeroText(text) {
   if (!text) return '';
-  const currentLang = localStorage.getItem('lang') || 'ja';
-  const dict = heroTranslations[currentLang] || heroTranslations['ja'];
-  return dict[text] || text;
+  if (typeof text !== 'string') return text;
+  const curLang = (typeof currentLang !== 'undefined') ? currentLang : 'ja';
+  const dict = heroTranslations[curLang] || heroTranslations['ja'];
+  
+  const normalizedText = text.replace(/\r\n/g, '\n').trim();
+  if (dict[normalizedText]) {
+    return dict[normalizedText];
+  }
+  
+  for (let key in dict) {
+    if (key.replace(/\r\n/g, '\n').trim() === normalizedText) {
+      return dict[key];
+    }
+  }
+  return text;
 }
 
 function initHeroes() {
@@ -11964,6 +11929,9 @@ function renderSkillDetail(hero, usedPoints, maxPoints) {
     descText = translateHeroText(descText);
   }
   
+  // 重複したパーセント記号 (%%) を綺麗にクレンジング
+  descText = descText.replace(/%%/g, '%');
+  
   let lvlGridHtml = '';
   if (!isPassive && activeNode.levelValues) {
     activeNode.levelValues.forEach((val, i) => {
@@ -12405,11 +12373,11 @@ function renderEquipDetailPane() {
     <div class="equip-detail-card">
       <div class="eq-detail-info">
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-          <div style="width:40px; height:40px; border:1px solid ${rarityColor}; border-radius:6px; display:flex; align-items:center; justify-content:center; background:var(--bg-secondary); cursor:pointer;" onclick="showItemDetail('${item.name.replace(/'/g, "\\'")}')" title="Wiki詳細を表示">
+          <div style="width:40px; height:40px; border:1px solid ${rarityColor}; border-radius:6px; display:flex; align-items:center; justify-content:center; background:var(--bg-secondary); cursor:pointer;" onclick="showItemDetail(${item.key})" title="Wiki詳細を表示">
             <img src="https://taskbarherowiki.com/icons/${item.icon}.png" style="width:30px; height:30px; object-fit:contain; image-rendering:pixelated;" />
           </div>
           <div>
-            <div class="eq-detail-name" style="color:${rarityColor}; cursor:pointer;" onclick="showItemDetail('${item.name.replace(/'/g, "\\'")}')" title="Wiki詳細を表示">${item.name}</div>
+            <div class="eq-detail-name" style="color:${rarityColor}; cursor:pointer;" onclick="showItemDetail(${item.key})" title="Wiki詳細を表示">${item.name}</div>
             <div style="font-size:10px; color:var(--text-sec); margin-top:2px;">
               <span class="rb" style="font-size:8px; padding:1px 4px; border:1px solid ${rarityColor}30; color:${rarityColor}; background:rgba(255,255,255,0.03);">${item.grade}</span>
               <span style="margin-left:6px;">Lv.${item.level} ${item.gearType}</span>

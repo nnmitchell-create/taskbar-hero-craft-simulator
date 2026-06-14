@@ -100,7 +100,7 @@ def run():
             
         final_list = list(unique_items.values())
         
-        output_path = os.path.join(os.path.dirname(__file__), "market_init.js")
+        output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "market_init.js")
         print(f"Writing data to {output_path}...")
         
         js_content = f"window.DEFAULT_MARKET_DATA = {json.dumps(final_list, ensure_ascii=False)};"
