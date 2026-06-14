@@ -21,6 +21,9 @@ with open(os.path.join(data_dir, 'heroes.json'), 'r', encoding='utf-8') as f:
 with open(os.path.join(data_dir, 'runes.json'), 'r', encoding='utf-8') as f:
     runes = json.load(f)
 
+with open(os.path.join(data_dir, 'stages.json'), 'r', encoding='utf-8') as f:
+    stages = json.load(f)
+
 # JavaScriptのコードを作成する
 js_content = f"""// Auto-generated data file to bypass CORS restrictions
 var WIKI_META = {json.dumps(meta, ensure_ascii=False)};
@@ -29,6 +32,7 @@ var WIKI_EFFECTS = {json.dumps(effects, ensure_ascii=False)};
 var WIKI_CHESTS = {json.dumps(chests, ensure_ascii=False)};
 var WIKI_HEROES = {json.dumps(heroes, ensure_ascii=False)};
 var WIKI_RUNES = {json.dumps(runes, ensure_ascii=False)};
+var WIKI_STAGES = {json.dumps(stages, ensure_ascii=False)};
 """
 
 output_path = os.path.join(data_dir, 'data.js')
