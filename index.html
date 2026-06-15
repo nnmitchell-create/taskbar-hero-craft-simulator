@@ -1784,6 +1784,9 @@
               <tbody id="itemTbody"></tbody>
             </table>
           </div>
+          <div style="margin-top:12px; font-size:11px; color:var(--text-sec); line-height:1.5; border-top:1px solid rgba(255,255,255,0.08); padding-top:8px;" data-i18n="craft_price_fallback_note">
+            ※マーケットに取引履歴がなく参考にできる価格がないアイテムは、AIによる推定デフォルト価格（Uncommon: 0, Rare: 0, Legendary: 20, Immortal: 80, Arcana: 400, Beyond: 2000 等）が初期値として入力されています。必要に応じてセルを直接編集して調整してください。
+          </div>
         </div>
         
         <!-- モンテカルロシミュレーション -->
@@ -2490,6 +2493,7 @@ const I18N = {
     craft_ev_win_rate: "Profit Chance",
     craft_ev_max: "Max Sell Price",
     craft_details_title: "◆ Item Details in Recipe (Editable Prices)",
+    craft_price_fallback_note: "*For items with no transaction history on the market, AI-estimated default fallback prices (Uncommon: 0, Rare: 0, Legendary: 20, Immortal: 80, Arcana: 400, Beyond: 2000, etc.) are applied as initial values. Please edit the cells manually to adjust them to match actual rates.",
     craft_col_name: "Item Name",
     craft_col_rarity: "Rarity",
     craft_col_prob: "Prob %",
@@ -2683,6 +2687,7 @@ const I18N = {
     craft_ev_win_rate: "黒字確率",
     craft_ev_max: "最高売却額",
     craft_details_title: "◆ レシピ内アイテム詳細（価格編集可能）",
+    craft_price_fallback_note: "※マーケットに取引履歴がなく参考にできる価格がないアイテムは、AIによる推定デフォルト価格（Uncommon: 0, Rare: 0, Legendary: 20, Immortal: 80, Arcana: 400, Beyond: 2000 等）が初期値として入力されています。必要に応じてセルを直接編集して調整してください。",
     craft_col_name: "アイテム名",
     craft_col_rarity: "レア",
     craft_col_prob: "確率",
@@ -7098,8 +7103,17 @@ function buildDynamicRecipes() {
       'Accessory': 'Accessory'
     };
 
-    const recipeNameJa = `${typeLabelsJa[tmpl.type] || tmpl.type} T${tmpl.tier}`;
-    const recipeNameEn = `${typeLabelsEn[tmpl.type] || tmpl.type} T${tmpl.tier}`;
+    let lvlText = '';
+    if (tmpl.levelMin !== undefined && tmpl.levelMax !== undefined) {
+      if (tmpl.levelMin === tmpl.levelMax) {
+        lvlText = `Lv.${tmpl.levelMin}`;
+      } else {
+        lvlText = `Lv.${tmpl.levelMin}~${tmpl.levelMax}`;
+      }
+    }
+
+    const recipeNameJa = `${typeLabelsJa[tmpl.type] || tmpl.type} T${tmpl.tier} ${lvlText ? '(' + lvlText + ')' : ''}`;
+    const recipeNameEn = `${typeLabelsEn[tmpl.type] || tmpl.type} T${tmpl.tier} ${lvlText ? '(' + lvlText + ')' : ''}`;
 
     const recipe = {
       name_ja: recipeNameJa,
