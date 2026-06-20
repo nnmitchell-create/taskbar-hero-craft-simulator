@@ -1046,49 +1046,58 @@
         <div class="card" style="width:100%; padding:16px; display:flex; flex-direction:column; gap:16px;">
           <div class="card-title" style="font-size:14px; color:var(--accent);">◆ 設定パラメータ</div>
           
-          <!-- ステージ選択 -->
-          <div class="input-row">
-            <span class="input-label" style="min-width:110px;">ステージ:</span>
-            <select id="mapStageSelect" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Inter'; font-size:13px;"></select>
+          <!-- 2列グリッドコンテナ -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px 24px;">
+            <!-- グリッド左側グループ -->
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <!-- ステージ選択 -->
+              <div class="input-row" style="margin:0;">
+                <span class="input-label" style="min-width:110px;">ステージ:</span>
+                <select id="mapStageSelect" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Inter'; font-size:13px;"></select>
+              </div>
+              
+              <!-- クリアタイム入力 -->
+              <div class="input-row" style="margin:0;">
+                <span class="input-label" style="min-width:110px;">クリアタイム:</span>
+                <input type="number" id="mapClearTimeInput" value="15" placeholder="秒数 (例: 15)" min="1" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Rajdhani'; font-weight:bold; font-size:14px; text-align:center;" />
+              </div>
+
+              <!-- 合成上限レアリティ選択 -->
+              <div class="input-row" style="margin:0;">
+                <span class="input-label" style="min-width:110px;">自動合成上限:</span>
+                <select id="mapSynthLimitSelect" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Inter'; font-size:13px;">
+                  <option value="IMMORTAL">IMMORTAL (不朽)</option>
+                  <option value="ARCANA">ARCANA (神秘)</option>
+                  <option value="BEYOND" selected>BEYOND (推奨・超越)</option>
+                  <option value="CELESTIAL">CELESTIAL (天界)</option>
+                  <option value="DIVINE">DIVINE (神聖)</option>
+                  <option value="COSMIC">COSMIC (宇宙・合成しない)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- グリッド右側グループ -->
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <!-- 総周回時間 -->
+              <div class="input-row" style="margin:0;">
+                <span class="input-label" style="min-width:110px;">総周回時間 (時間):</span>
+                <input type="number" id="mapTotalHoursInput" value="240" min="1" placeholder="例: 240" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Rajdhani'; font-weight:bold; font-size:14px; text-align:center;" oninput="updateMapHoursPerDay()" />
+              </div>
+
+              <!-- 周回日数 -->
+              <div class="input-row" style="margin:0;">
+                <span class="input-label" style="min-width:110px;">周回日数 (日):</span>
+                <input type="number" id="mapTotalDaysInput" value="20" min="1" placeholder="例: 20" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Rajdhani'; font-weight:bold; font-size:14px; text-align:center;" oninput="updateMapHoursPerDay()" />
+              </div>
+
+              <!-- 1日の稼働時間表示 -->
+              <div class="input-row" style="font-size:12px; color:var(--text-sec); display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.08); margin:0; min-height:33px;">
+                <span>1日の稼働時間:</span>
+                <strong style="color:var(--accent); font-family:'Rajdhani'; font-size:14px;"><span id="mapHoursPerDayVal">12.0</span> 時間/日</strong>
+              </div>
+            </div>
           </div>
           
-          <!-- クリアタイム入力 -->
-          <div class="input-row">
-            <span class="input-label" style="min-width:110px;">クリアタイム:</span>
-            <input type="number" id="mapClearTimeInput" value="15" placeholder="秒数 (例: 15)" min="1" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Rajdhani'; font-weight:bold; font-size:14px; text-align:center;" />
-          </div>
-
-          <!-- 総周回時間 -->
-          <div class="input-row">
-            <span class="input-label" style="min-width:110px;">総周回時間 (時間):</span>
-            <input type="number" id="mapTotalHoursInput" value="240" min="1" placeholder="例: 240" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Rajdhani'; font-weight:bold; font-size:14px; text-align:center;" oninput="updateMapHoursPerDay()" />
-          </div>
-
-          <!-- 周回日数 -->
-          <div class="input-row">
-            <span class="input-label" style="min-width:110px;">周回日数 (日):</span>
-            <input type="number" id="mapTotalDaysInput" value="20" min="1" placeholder="例: 20" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Rajdhani'; font-weight:bold; font-size:14px; text-align:center;" oninput="updateMapHoursPerDay()" />
-          </div>
-
-          <!-- 1日の稼働時間表示 -->
-          <div class="input-row" style="font-size:12px; color:var(--text-sec); display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:4px;">
-            <span>1日の稼働時間:</span>
-            <strong style="color:var(--accent); font-family:'Rajdhani'; font-size:14px;"><span id="mapHoursPerDayVal">12.0</span> 時間/日</strong>
-          </div>
-
-          <!-- 合成上限レアリティ選択 -->
-          <div class="input-row">
-            <span class="input-label" style="min-width:110px;">自動合成上限:</span>
-            <select id="mapSynthLimitSelect" style="flex:1; background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:6px; color:#ffffff; font-family:'Inter'; font-size:13px;">
-              <option value="IMMORTAL">IMMORTAL (不朽)</option>
-              <option value="ARCANA">ARCANA (神秘)</option>
-              <option value="BEYOND" selected>BEYOND (推奨・超越)</option>
-              <option value="CELESTIAL">CELESTIAL (天界)</option>
-              <option value="DIVINE">DIVINE (神聖)</option>
-              <option value="COSMIC">COSMIC (宇宙・合成しない)</option>
-            </select>
-          </div>
-
           <!-- 実行ボタン -->
           <button class="run-btn" id="mapRunBtn" onclick="runMapFarmingSimulation()" style="width:100%; padding:12px; font-weight:bold; font-size:14px; letter-spacing:1px; margin-top:8px;">🎲 周回シミュレーション実行</button>
           
