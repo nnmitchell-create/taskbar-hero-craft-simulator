@@ -383,6 +383,7 @@ function saveFarmConfig() {
 
 function recalculateFarm() {
   if (typeof WIKI_STAGES === 'undefined') return;
+  const isEn = (typeof currentLang !== 'undefined' ? currentLang : 'en') === 'en';
   const ceilingKey = farmConfig.ceiling;
   const time11Str = farmConfig.times[1101];
   const timeCeilStr = ceilingKey ? farmConfig.times[ceilingKey] : null;
@@ -579,7 +580,6 @@ function recalculateFarm() {
     bestStageLabelEl.textContent = best.stage.label;
     bestStageNameEl.textContent = best.stage.name;
     
-    const isEn = (typeof currentLang !== 'undefined' ? currentLang : 'en') === 'en';
     const currencySymbol = getMarketCurrencySymbol();
 
     if (mode === 'exp' || mode === 'gold') {
