@@ -6471,11 +6471,11 @@ function generateAiPriceDatabase() {
   // オファリングコインの固定推定価格定義
   const offeringCoinPrices = {
     160001: 1850,
-    160002: 1200,
-    160003: 999,
-    160004: 2484,
-    160005: 3000, // Kingdom 50th を 3000円に調整
-    160006: 3000, // Empire 50th を 3000円に変更
+    160002: 2000, // Empire 1st
+    160003: 2400, // Kingdom 10th
+    160004: 2800, // Empire 10th
+    160005: 3000, // Kingdom 50th
+    160006: 4000, // Empire 50th
     160007: 7500, // Kingdom 100th
     160008: 18000, // Empire 100th
     160009: 48000, // Sacred Kingdom 1000th

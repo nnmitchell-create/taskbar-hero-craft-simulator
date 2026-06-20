@@ -819,7 +819,7 @@
     /* ─── MAIN NAV ─── */
     .main-nav {
       display: grid;
-      grid-template-columns: repeat(8, 1fr);
+      grid-template-columns: repeat(10, 1fr);
       gap: 8px;
       margin-bottom: 28px; max-width: 1320px; width: 100%; margin: 0 auto 28px;
       padding: 8px;
@@ -828,6 +828,12 @@
       border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
       box-sizing: border-box;
+    }
+    .main-nav .mn-btn {
+      grid-column: span 2;
+    }
+    .main-nav .mn-btn:nth-child(6) {
+      grid-column: 2 / span 2;
     }
     .mn-btn {
       background: transparent; border: 1px solid transparent;
@@ -853,11 +859,14 @@
 
     @media (max-width: 1150px) {
       .main-nav {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         max-width: 100%;
         gap: 8px;
         padding: 8px;
         border-radius: 18px;
+      }
+      .main-nav .mn-btn {
+        grid-column: auto;
       }
       .mn-btn {
         padding: 10px 6px;
@@ -874,6 +883,12 @@
         padding: 6px;
         gap: 6px;
         border-radius: 12px;
+      }
+      .main-nav .mn-btn {
+        grid-column: auto;
+      }
+      .main-nav .mn-btn:nth-child(9) {
+        grid-column: span 2;
       }
       .mn-btn {
         padding: 8px 6px;
