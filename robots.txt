@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://tbh-codex.com/sitemap.xml

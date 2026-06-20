@@ -84,7 +84,7 @@ const filterTranslations = {
 
 const I18N = {
   en: {
-    site_title: "Taskbar Hero Craft Simulator & Database",
+    site_title: "TBH CODEX | Taskbar Hero Simulator & Database",
     site_description: "Calculate expected values, ROI, and simulate repetitive crafting with Monte Carlo simulation for Taskbar Hero.",
     timer_next: "NEXT UPDATE: ",
     timer_collecting: "COLLECTING MARKET DATA...",
@@ -310,7 +310,7 @@ const I18N = {
     synth_bulk_log_lbl: "Simulation Log"
   },
   ja: {
-    site_title: "タスクバーヒーロー クラフトガチャ収益シミュレーター",
+    site_title: "TBH CODEX | タスクバーヒーロー 総合シミュレータ & データベース",
     site_description: "タスクバーヒーローのクラフトガチャで武器を作成・売却したときの収益をシミュレーションできるツール。レシピ別の期待値計算・モンテカルロシミュレーション対応。",
     timer_next: "次回更新まで: ",
     timer_collecting: "マーケットデータ収集中...",
