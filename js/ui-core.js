@@ -6483,6 +6483,15 @@ function generateAiPriceDatabase() {
   };
   
   globalItems.forEach(item => {
+    // 装備 (GEAR) のコモン、アンコモン、レアはマーケット取引不可のため、価格を0にする
+    if (item.type === 'GEAR') {
+      const g = String(item.grade || '').toUpperCase();
+      if (g === 'COMMON' || g === 'UNCOMMON' || g === 'RARE') {
+        aiPriceDatabase[item.key] = 0;
+        return;
+      }
+    }
+
     // オファリングコインの場合は、固定のオファリング推定価格を優先適用
     if (offeringCoinPrices[item.key] !== undefined) {
       aiPriceDatabase[item.key] = offeringCoinPrices[item.key];
@@ -6659,6 +6668,7 @@ function getItemPriceByBasis(mData, item = null) {
   if (currentPriceDatabaseMode === 'ai' && typeof aiPriceDatabase !== 'undefined') {
     const key = (mData ? (mData.key || mData.id) : null) || (item ? (item.key || item.id) : null);
     if (key && aiPriceDatabase[key] !== undefined) {
+      if (aiPriceDatabase[key] === 0) return 0; // 価格が0に設定されている場合はそのまま0を返す
       return Math.max(6, aiPriceDatabase[key]);
     }
   }

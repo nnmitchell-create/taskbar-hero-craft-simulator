@@ -941,7 +941,7 @@
         <div id="synth-card-multi" class="card" style="padding:16px; display:none; flex-direction:column; gap:16px; width:100%;">
           <div class="card-title" style="margin-bottom:0;">◆ 複数回合成シミュレータ</div>
           
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;" id="multi-synth-inputs-row1">
             <div>
               <label style="font-size:12px; color:var(--text-sec); display:block; margin-bottom:6px;">ジャンル：</label>
               <select id="multiSynthCategory" class="select-box" style="width:100%;" onchange="updateMultiSynthLevelOptions()">
@@ -950,8 +950,22 @@
                 <option value="MATERIAL">Material</option>
               </select>
             </div>
+            <div id="multiSynthLevelRangeCol">
+              <label style="font-size:12px; color:var(--text-sec); display:block; margin-bottom:6px;">合成レベル帯：</label>
+              <select id="multiSynthLevelRange" class="select-box" style="width:100%;">
+                <option value="1-10">Lv.1~10</option>
+                <option value="10-20">Lv.10~20</option>
+                <option value="15-30">Lv.15~30</option>
+                <option value="20-40">Lv.20~40</option>
+                <option value="30-50">Lv.30~50</option>
+                <option value="40-65">Lv.40~65</option>
+                <option value="50-65">Lv.50~65</option>
+                <option value="65-80" selected>Lv.65~80</option>
+                <option value="80-100">Lv.80~100</option>
+              </select>
+            </div>
             <div>
-              <label style="font-size:12px; color:var(--text-sec); display:block; margin-bottom:6px;">レベル / ティア：</label>
+              <label id="multiSynthLevelLabel" style="font-size:12px; color:var(--text-sec); display:block; margin-bottom:6px;">材料平均レベル：</label>
               <select id="multiSynthLevel" class="select-box" style="width:100%;">
                 <!-- JavaScriptで動的に生成 -->
               </select>

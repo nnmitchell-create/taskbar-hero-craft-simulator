@@ -3,6 +3,62 @@
    ────────────────────────────────────────────── */
 let isSynthesisInitialized = false;
 
+// 各レベル帯に対応する出現候補レベルの定義定数
+const SYNTH_LEVEL_RANGES = {
+  '1-10': [1, 5, 10],
+  '10-20': [10, 15, 20],
+  '15-30': [15, 20, 30],
+  '20-40': [20, 30, 40],
+  '30-50': [30, 40, 50],
+  '40-65': [40, 50, 65],
+  '50-65': [50, 65],
+  '65-80': [65, 80],
+  '80-100': [80, 100]
+};
+
+// 投入平均レベルと合成レベル帯に基づいて、結果の装備レベルを確率的に抽選する
+function determineResultLevel(avgLevel, rangeKey) {
+  const pool = SYNTH_LEVEL_RANGES[rangeKey];
+  if (!pool || pool.length === 0) return avgLevel;
+  
+  if (pool.length === 1) {
+    return pool[0];
+  }
+  
+  // 平均レベルに最も近い候補レベルを特定
+  let closestLv = pool[0];
+  let minDiff = Math.abs(pool[0] - avgLevel);
+  for (let i = 1; i < pool.length; i++) {
+    const diff = Math.abs(pool[i] - avgLevel);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closestLv = pool[i];
+    }
+  }
+  
+  const rand = Math.random() * 100;
+  
+  if (pool.length === 2) {
+    // 2種類の場合: 最も近いレベルの出現率は 80%、もう一方は 20%
+    const otherLv = pool.find(lv => lv !== closestLv);
+    if (rand < 80) {
+      return closestLv;
+    } else {
+      return otherLv;
+    }
+  } else {
+    // 3種類の場合: 最も近いレベルの出現率は 60%、他の2種類はそれぞれ 20%
+    const others = pool.filter(lv => lv !== closestLv);
+    if (rand < 60) {
+      return closestLv;
+    } else if (rand < 80) {
+      return others[0];
+    } else {
+      return others[1];
+    }
+  }
+}
+
 function initSynthesisSim() {
   if (isSynthesisInitialized) return;
   isSynthesisInitialized = true;
@@ -370,6 +426,7 @@ function updateSynthesisEVDisplay() {
   const targetItemGrade = targetItem.grade;
   const targetItemIdx = SYNTH_GRADE_ORDER.indexOf(targetItemGrade);
   const targetCategory = getSynthCategory(targetItem);
+  const targetLv = targetItem.level || 0;
   
   // 同レベル・同カテゴリ・同グレードのアイテム数を算出（ゲーム内での均等選出確率分母）
   const pool = globalItems.filter(it => {
@@ -377,14 +434,40 @@ function updateSynthesisEVDisplay() {
     if (it.type === 'STAGEBOX') return false;
     if (it.grade !== targetItemGrade) return false;
     if (getSynthCategory(it) !== targetCategory) return false;
-    return (it.level || 0) === (targetItem.level || 0);
+    return (it.level || 0) === targetLv;
   });
   
   const poolSize = pool.length || 1;
+
+  // 候補レベル数の判定 (50, 65, 80, 100 ➔ 2択。その他 ➔ 3択)
+  // ※ 素材 (MATERIAL) はそもそもレベル別合成ではないため100%扱い（choices=1）とする
+  let choices = 3;
+  if (targetCategory === 'MATERIAL') {
+    choices = 1;
+  } else if ([50, 65, 80, 100].includes(targetLv)) {
+    choices = 2;
+  }
   
-  // 後退代入法で確率 P[j] を算出
-  const P = Array(SYNTH_GRADE_ORDER.length).fill(0);
-  P[targetItemIdx] = 1 / poolSize;
+  // 確率の割り当て
+  // p_high: 最も平均レベルが目標レベルに近い場合
+  // p_low: 最も平均レベルが目標レベルから遠い場合
+  let p_high = 1.0;
+  let p_low = 1.0;
+  
+  if (choices === 2) {
+    p_high = 0.8;
+    p_low = 0.2;
+  } else if (choices === 3) {
+    p_high = 0.6;
+    p_low = 0.2;
+  }
+  
+  // 後退代入法で確率 P_high[j] と P_low[j] を算出
+  const P_high = Array(SYNTH_GRADE_ORDER.length).fill(0);
+  const P_low = Array(SYNTH_GRADE_ORDER.length).fill(0);
+  
+  P_high[targetItemIdx] = p_high / poolSize;
+  P_low[targetItemIdx] = p_low / poolSize;
   
   for (let j = targetItemIdx - 1; j >= 0; j--) {
     const gradeName = SYNTH_GRADE_ORDER[j];
@@ -397,10 +480,15 @@ function updateSynthesisEVDisplay() {
     const next1 = j + 1;
     const next2 = j + 2;
     
-    const pNext1 = (next1 === targetItemIdx) ? (1 / poolSize) : (next1 < targetItemIdx ? P[next1] : 0);
-    const pNext2 = (next2 === targetItemIdx) ? (1 / poolSize) : (next2 < targetItemIdx ? P[next2] : 0);
+    // P_high の逆算
+    const pNext1_high = (next1 === targetItemIdx) ? (p_high / poolSize) : (next1 < targetItemIdx ? P_high[next1] : 0);
+    const pNext2_high = (next2 === targetItemIdx) ? (p_high / poolSize) : (next2 < targetItemIdx ? P_high[next2] : 0);
+    P_high[j] = (pSuccess * pNext1_high + pGreat * pNext2_high) / (9 - pFail);
     
-    P[j] = (pSuccess * pNext1 + pGreat * pNext2) / (9 - pFail);
+    // P_low の逆算
+    const pNext1_low = (next1 === targetItemIdx) ? (p_low / poolSize) : (next1 < targetItemIdx ? P_low[next1] : 0);
+    const pNext2_low = (next2 === targetItemIdx) ? (p_low / poolSize) : (next2 < targetItemIdx ? P_low[next2] : 0);
+    P_low[j] = (pSuccess * pNext1_low + pGreat * pNext2_low) / (9 - pFail);
   }
   
   // 確率早見表 (Grade-up Odds) の作成
@@ -485,15 +573,22 @@ function updateSynthesisEVDisplay() {
   // すべての開始グレードに対する期待値を算出してリスト表示
   let html = `
     <div style="font-size:11px; color:var(--text-sec); margin-bottom: 6px;">
-      💡 [${isEn ? 'Specific Target EV' : '特定目標 of 期待値'}] ${isEn ? 'Expected starting items of each grade to get 1' : '1個獲得するまでに必要な各グレードの消費期待値'}:
+      💡 [${isEn ? 'Specific Target EV' : '特定目標の期待値'}] ${isEn ? 'Expected starting items of each grade to get 1' : '1個獲得するまでに必要な各グレードの消費期待値'}:
     </div>
     <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
   `;
   
   for (let j = 0; j < targetItemIdx; j++) {
     const gradeName = SYNTH_GRADE_ORDER[j];
-    const evVal = P[j] > 0 ? (1 / P[j]) : Infinity;
-    const evText = isFinite(evVal) ? evVal.toLocaleString(undefined, {maximumFractionDigits: 1}) : '∞';
+    const evVal_min = P_high[j] > 0 ? (1 / P_high[j]) : Infinity;
+    const evVal_max = P_low[j] > 0 ? (1 / P_low[j]) : Infinity;
+    
+    const evText_min = isFinite(evVal_min) ? evVal_min.toLocaleString(undefined, {maximumFractionDigits: 1}) : '∞';
+    const evText_max = isFinite(evVal_max) ? evVal_max.toLocaleString(undefined, {maximumFractionDigits: 1}) : '∞';
+    
+    const evDisplay = (choices === 1) 
+      ? `${evText_min} ${isEn ? 'pcs' : '個'}`
+      : `${evText_min}個 (確率高) 〜 ${evText_max}個 (確率低)`;
     
     const color = getGradeColor(gradeName);
     
@@ -503,10 +598,15 @@ function updateSynthesisEVDisplay() {
       const cheapest = getCheapestMarketPrice(gradeName, targetItem.level || 0, targetCategory);
       if (cheapest) {
         const symbol = getMarketCurrencySymbol() || '$';
-        const totalCost = evVal * cheapest.price;
+        const totalCost_min = evVal_min * cheapest.price;
+        const totalCost_max = evVal_max * cheapest.price;
         const itemName = isEn ? cheapest.item.name : (cheapest.item.name_ja || cheapest.item.name);
         const iconName = cheapest.item.icon || 'Item_910011';
         
+        const costDisplay = (choices === 1)
+          ? `${symbol}${totalCost_min.toLocaleString(undefined, {maximumFractionDigits: 0})}`
+          : `${symbol}${totalCost_min.toLocaleString(undefined, {maximumFractionDigits: 0})} 〜 ${symbol}${totalCost_max.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+          
         priceHtml = `
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-sec); border-top: 1px dashed rgba(255,255,255,0.05); margin-top:4px; padding-top:4px;">
             <div style="display:flex; align-items:center; gap:4px; min-width:0; flex:1;">
@@ -516,7 +616,7 @@ function updateSynthesisEVDisplay() {
               <span style="color:#00ff80; font-family:'Rajdhani'; font-weight:600; margin-left:2px;">${symbol}${cheapest.price.toLocaleString(undefined, {maximumFractionDigits: 1})}</span>
             </div>
             <div style="font-family:'Rajdhani'; font-weight:700; color:#ffbb00;">
-              ${isEn ? 'Est. Cost:' : '最安合成総額:'} <span style="font-size:12px;">${symbol}${totalCost.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+              ${isEn ? 'Est. Cost:' : '最安合成総額:'} <span style="font-size:12px;">${costDisplay}</span>
             </div>
           </div>
         `;
@@ -533,7 +633,7 @@ function updateSynthesisEVDisplay() {
       <div style="display:flex; flex-direction:column; gap:2px; padding:6px 10px; border-radius:6px; background:rgba(255,255,255,0.02); border:1px solid var(--border-soft);">
         <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
           <span><span style="color:${color}; font-weight:bold;">${gradeName}</span> ${isEn ? 'Start' : 'から開始'}:</span>
-          <strong style="color:#00d2ff; font-family:'Rajdhani', sans-serif; font-size:13px;">${evText} ${isEn ? 'pcs' : '個'}</strong>
+          <strong style="color:#00d2ff; font-family:'Rajdhani', sans-serif; font-size:13px;">${evDisplay}</strong>
         </div>
         ${priceHtml}
       </div>
@@ -1044,6 +1144,9 @@ function runMultiSynthesisSim() {
     alert(isEn ? 'Synthesis is not supported for this grade.' : 'このグレードの合成はサポートされていません。');
     return;
   }
+
+  const rangeEl = document.getElementById('multiSynthLevelRange');
+  const rangeKey = rangeEl ? rangeEl.value : '1-10';
   
   for (let r = 0; r < runs; r++) {
     // 合成元9個のレベルを決定
@@ -1070,31 +1173,20 @@ function runMultiSynthesisSim() {
       failCount++;
     }
     
+    // 合成結果レベルの決定（GEAR/ACCESSORYの場合のみ確率計算。MATERIALの場合はavgLevelそのものを結果にする）
+    const finalLevel = (category === 'MATERIAL') ? avgLevel : determineResultLevel(avgLevel, rangeKey);
+    
     // 結果アイテムプール
     const resultPool = globalItems.filter(it => {
       if (it.obtainable === false) return false;
       if (it.type === 'STAGEBOX') return false;
       if (it.grade !== resultGrade) return false;
-      return getSynthCategory(it) === category;
+      if (getSynthCategory(it) !== category) return false;
+      return (it.level || 0) === finalLevel; // 決定されたレベルに完全一致するものをプールから選ぶ
     });
     
     if (resultPool.length > 0) {
-      // 平均レベルに最も近いアイテムを選ぶ
-      let closestItems = [];
-      let minDiff = Infinity;
-      
-      resultPool.forEach(it => {
-        const itLv = it.level || 0;
-        const diff = Math.abs(itLv - avgLevel);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestItems = [it];
-        } else if (diff === minDiff) {
-          closestItems.push(it);
-        }
-      });
-      
-      const finalItem = closestItems[Math.floor(Math.random() * closestItems.length)];
+      const finalItem = resultPool[Math.floor(Math.random() * resultPool.length)];
       const itemKey = finalItem.key;
       
       // 集計
@@ -1114,6 +1206,7 @@ function runMultiSynthesisSim() {
     if (!item) return 0;
     if (typeof currentPriceDatabaseMode !== 'undefined' && currentPriceDatabaseMode === 'ai' && typeof aiPriceDatabase !== 'undefined') {
       if (item.key && aiPriceDatabase[item.key] !== undefined) {
+        if (aiPriceDatabase[item.key] === 0) return 0;
         return Math.max(6, aiPriceDatabase[item.key]);
       }
     }
@@ -1279,6 +1372,24 @@ function updateMultiSynthLevelOptions() {
   
   const category = categoryEl.value;
   const isEn = (typeof currentLang !== 'undefined' ? currentLang : 'en') === 'en';
+  
+  const rangeCol = document.getElementById('multiSynthLevelRangeCol');
+  const inputsRow = document.getElementById('multi-synth-inputs-row1');
+  const levelLabel = document.getElementById('multiSynthLevelLabel');
+  
+  if (category === 'MATERIAL') {
+    if (rangeCol) rangeCol.style.display = 'none';
+    if (inputsRow) inputsRow.style.gridTemplateColumns = '1fr 1fr';
+    if (levelLabel) {
+      levelLabel.textContent = isEn ? 'Level / Tier:' : 'レベル / ティア：';
+    }
+  } else {
+    if (rangeCol) rangeCol.style.display = 'block';
+    if (inputsRow) inputsRow.style.gridTemplateColumns = '1fr 1fr 1fr';
+    if (levelLabel) {
+      levelLabel.textContent = isEn ? 'Avg Material Level:' : '材料平均レベル：';
+    }
+  }
   
   // 現在の選択状態を退避
   const prevVal = levelEl.value;
