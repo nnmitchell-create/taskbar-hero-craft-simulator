@@ -5001,7 +5001,13 @@ function initUpdateTimer() {
 
   // 1. 前回の更新日時 (JST) を取得する
   let lastUpdateMs = 0;
-  if (window.DEFAULT_MARKET_DATA && window.DEFAULT_MARKET_DATA.length > 0) {
+  if (typeof window.MARKET_DB !== 'undefined' && window.MARKET_DB && Object.keys(window.MARKET_DB).length > 0) {
+    // MARKET_DB 内の全アイテムの中から最大の updated_at を取得
+    const maxUpdatedAt = Math.max(...Object.values(window.MARKET_DB).map(item => item.updated_at || 0));
+    if (maxUpdatedAt > 0) {
+      lastUpdateMs = maxUpdatedAt * 1000;
+    }
+  } else if (window.DEFAULT_MARKET_DATA && window.DEFAULT_MARKET_DATA.length > 0) {
     // 最初のアイテムの updated_at を使用する (Unix秒 -> ミリ秒)
     lastUpdateMs = window.DEFAULT_MARKET_DATA[0].updated_at * 1000;
   }

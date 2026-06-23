@@ -195,6 +195,18 @@ function getGradeFallbackPrice(grade) {
    PRICE GETTER
 ────────────────────────────────────────────── */
 function getPrice(cat, ri, name, rk) {
+  // 装備 (GEAR) のコモン、アンコモン、レアは売却不可のため強制的に0にする
+  const gradeUpper = String(rk).toUpperCase();
+  const foundItem = (typeof globalItems !== 'undefined') ? globalItems.find(it => {
+    return it.name === name && it.grade === gradeUpper;
+  }) : null;
+  
+  if (foundItem && foundItem.type === 'GEAR') {
+    if (gradeUpper === 'COMMON' || gradeUpper === 'UNCOMMON' || gradeUpper === 'RARE') {
+      return 0;
+    }
+  }
+
   const customKey = cat + '_' + ri;
   const k = name + '_' + rk;
   if (custom[customKey] && custom[customKey][k] !== undefined) return custom[customKey][k];
@@ -513,7 +525,7 @@ function renderTable() {
         const labelUnsellable = isJa ? `売却不可 (${currencySymbol}0)` : `Unsellable (${currencySymbol}0)`;
 
         let priceCell;
-        if (r.key === 'uncommon' || r.key === 'rare') {
+        if (r.key === 'common' || r.key === 'uncommon' || r.key === 'rare') {
           priceCell = `<td style="color:var(--${r.key}); font-size:12px; text-align:right;">${labelUnsellable}</td>`;
         } else {
           priceCell = `<td class="price-cell" style="text-align:right;" onclick="editPrice(this,'${item.name}','${r.key}')" title="${isJa ? 'クリックで編集' : 'Click to edit'}">
